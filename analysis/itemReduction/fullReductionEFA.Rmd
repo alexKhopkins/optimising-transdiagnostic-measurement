@@ -1,0 +1,225 @@
+x---
+title: "reductionPipeline"
+author: "AKH"
+date: "15/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(reticulate)
+os <- import("os")
+reticulate::virtualenv_create(envname = "myenv", python ="/usr/local/bin/python3")
+# set_python_env("myenv", type = "virtualenv")
+# use_python("/Library/Frameworks/Python.framework/Versions/3.9/bin/python3", required = T)
+# use_python("/usr/local/bin/python3", required = T)
+
+# INSTALL SETTINGS - NEED TO INSTALL PYTHON ENVIRONMENTS IF USING FOR THE FIRST TIME
+# py_install("sklearn",pip = TRUE) #might need to install using pip if miniconda doesnt work
+# py_install("sklearn")
+# py_install("pandas")
+# py_install("numpy")
+# py_install("tqdm")
+# py_install("scipy")
+# py_install("matplotlib")
+# py_install("seaborn")
+# py_install("os", pip = TRUE)
+
+py_config()
+```
+
+```{python}
+
+print('Python interface is working')
+
+```
+
+FIRST WE NEED TO TRAIN THE CLASSIFIER HYPERPARAMETRS
+```{python}
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import Lasso, Ridge
+from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.preprocessing import scale
+from tqdm import tqdm
+from scipy.stats.distributions import halfcauchy
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score
+import matplotlib
+import matplotlib.font_manager as font_manager
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+
+#Sort out directories
+import os
+cwd = os.getcwd()
+
+workspace1 = "hopkins" #alex work mac
+
+if workspace1 in cwd:
+  baseDir = '/Users/alexhopkins/Dropbox (Royal Holloway)/ESRC_NIG/RTMAT/'
+else:
+  baseDir = 'add_new_directory_here'
+
+qnsRTMAT = pd.read_csv(baseDir + 'data/raw/RTMATitems.csv')
+scoresRTMAT = pd.read_csv(baseDir + 'data/EFAscores/RTMATscores.csv')
+
+##### SETUP STABLE PARAMS ######
+matplotlib.rcParams['font.weight'] = 'light'
+matplotlib.rcParams['axes.facecolor'] = '#fbfbfb'
+
+pal = ['#4f4f4f', '#B80044', '#0e79b2']
+
+
+##### SETUP CLASSIFIER ######
+
+#x is items, y is scores
+x_train, x_test, y_train, y_test = train_test_split(qnsRTMAT, scoresRTMAT, random_state = 1)
+
+clf = Lasso()
+
+alpha_values = [0.001, 0.01, 0.05, 0.075, 0.1, 0.125, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+r2_values = np.empty((3, len(alpha_values)))
+n_items = np.empty(len(alpha_values))
+
+for n, alpha in enumerate(tqdm(alpha_values)):
+    clf = Lasso(alpha=alpha)
+    clf.fit(x_train.iloc[:, 2:], y_train.iloc[:, 2:])
+    pred = cross_val_predict(clf, x_train.iloc[:, 2:], y_train.iloc[:, 2:], cv=5)
+    for i in range(3):
+        r2_values[i, n] = r2_score(y_train.iloc[:, i+2], pred[:, i])
+    n_items[n] = np.any(clf.coef_.T != 0, axis=1).sum()
+    # print(n_items)
+    
+##### PLOT HYPERPARAMETER VALUES VS N ITEMS ######
+
+f, ax = plt.subplots(dpi=100, facecolor='white')
+for i in range(3):
+    ax.plot(n_items, r2_values[i, :], label='Factor {0}'.format(i+1), color=pal[i])
+ax.set_xlabel("Number of items")
+ax.set_ylabel("$R^2$")
+ax.legend(['AD', 'CIT', 'SW'])
+ax2 = ax.twiny()
+ax2.set_xticklabels(alpha_values)
+ax2.set_xticks(n_items)
+ax.axvline(73, color='#8c8a8a', linestyle=':')
+plt.setp(ax2.xaxis.get_majorticklabels(), rotation=90)
+plt.tight_layout()
+plt.savefig(baseDir + 'figs/reductionWholeSet/numItems73.eps', format='eps')
+plt.show()
+
+
+```
+
+
+Now we have the classifier settings we want, we can train the new classifier on the data to get the final set of items
+
+
+```{python}
+
+##### TRAIN CLASSIFER ON CHOSEN HYPERPARAMETER SETTING ######
+
+clf = Lasso(alpha=0.125) #Set hyperparameter to what you want 
+clf.fit(x_train.iloc[:, 2:], y_train.iloc[:, 2:])
+pred = cross_val_predict(clf, x_train.iloc[:, 2:], y_train.iloc[:, 2:], cv=5)
+
+##### PLOT PREDICTIONS FOR CLASSIFIER TRAINING SET ######
+f, ax = plt.subplots(1, 3, figsize=(10, 3.5), dpi=100, facecolor='white')
+
+factors = ['Anxiety & depression', 'Compulsivity', 'Social withdrawal']
+
+for i in range(3):
+    sns.regplot(y_train.iloc[:, i+2], pred[:, i], ax=ax[i], color=pal[i], scatter_kws={'alpha': 0.5})
+    ax[i].set_title(factors[i] + '\n$R^2$ = {0}'.format(np.round(r2_score(y_train.iloc[:, i+2], pred[:, i]), 3)), fontweight='light')
+    ax[i].set_xlabel('True score')
+    ax[i].set_ylabel('Predicted score')
+    ax[i].axis([-4, 4, -4, 4])
+    diag_line,= ax[i].plot(ax[i].get_xlim(), ax[i].get_ylim(), ls = "--",color = pal[i])
+    
+plt.tight_layout()
+plt.savefig(baseDir + 'figs/reductionWholeSet/truePredictedTrainingSet.eps', format='eps')
+plt.show()
+
+index1 = alpha_values.index(0.15)
+index2 = alpha_values.index(0.125)
+n_items[index1]
+n_items[index2]
+
+
+
+
+```
+
+```{python}
+##### PLOT ITEM COEFFICIENTS ######
+
+plt.figure(dpi=100, figsize=(9, 1.5), facecolor='white')
+sns.heatmap(clf.coef_, cmap='Blues', yticklabels=['AD', 'Compul', 'SW']);
+plt.xlabel("Question number")
+plt.ylabel("Factor")
+plt.savefig(baseDir + '/figs/reductionWholeSet/itemCoeffs.eps', format='eps')
+plt.show()
+
+##### PLOT ITEM NAMES ######
+plt.figure(figsize=(24, 3), dpi=80, facecolor='white')
+coefs = clf.coef_.T
+sns.heatmap(coefs[np.any(coefs != 0, axis=1)].T, cmap="Blues", xticklabels=qnsRTMAT.columns[2:][np.any(coefs != 0, axis=1)],
+           yticklabels=['Anxiety/depression', 'Compulsivity', 'Social withdrawal'], linewidths=.5);
+plt.xticks(rotation=45);
+plt.tight_layout()
+plt.savefig(baseDir + 'figs/reductionWholeSet/itemCoeffsItemNames.eps', format='eps')
+plt.show()
+
+np.any(clf.coef_.T != 0, axis=1).sum()
+
+#clf.fit(qnsRTMAT.iloc[:, 2:], scoresRTMAT.iloc[:, 2:])
+factor_score_pred = clf.predict(qnsRTMAT.iloc[:, 2:])
+factor_score_pred = pd.DataFrame(factor_score_pred, columns=['AD', 'Compul', 'SW'])
+factor_score_pred.loc[:, 'Subject'] = qnsRTMAT['subid'].values
+factor_score_pred.head()
+factor_score_pred.to_csv(baseDir + 'data/predictedFactorScores.csv')
+
+
+
+```
+
+```{python}
+weight_df = pd.DataFrame(coefs, columns=['Anxiety/depression', 'Compulsivity', 'Social withdrawal'], index=np.arange(coefs.shape[0]))
+weight_df['item'] = qnsRTMAT.columns[2:]
+print(qnsRTMAT.columns[2:])
+weight_df.head()
+weight_df.to_csv(baseDir + 'data/RTMATcoefs.csv', index=None)
+
+```
+
+Lets look at how it does on the test set of data
+```{python}
+
+predTest2 = clf.predict(x_test.iloc[:,2:])
+
+##### PLOT PREDICTIONS FOR CLASSIFIER TRAINING SET ######
+f, ax = plt.subplots(1, 3, figsize=(10, 3.5), dpi=100, facecolor='white')
+factors = ['Anxiety & depression', 'Compulsivity', 'Social withdrawal']
+
+for i in range(3):
+    sns.regplot(y_test.iloc[:, i+2], predTest2[:, i], ax=ax[i], color=pal[i], scatter_kws={'alpha': 0.5})
+    ax[i].set_title(factors[i] + '\n$R^2$ = {0}'.format(np.round(r2_score(y_test.iloc[:, i+2], predTest2[:, i]), 3)), fontweight='light')
+    ax[i].set_xlabel('True score')
+    ax[i].set_ylabel('Predicted score')
+    ax[i].axis([-4, 4, -4, 4])
+    diag_line,= ax[i].plot(ax[i].get_xlim(), ax[i].get_ylim(), ls = "--",color = pal[i])
+    
+plt.tight_layout()
+plt.savefig('/Users/alexxxxkh/Dropbox/postDocRH/RTMAT/figs/reductionWholeSet/predTest.eps', format='eps')
+plt.savefig('/Users/alexhopkins/Dropbox (Royal Holloway)/RTMAT/figs/reductionWholeSet/predTest.eps', format='eps')
+plt.show()
+
+
+```
+
+
