@@ -21,19 +21,19 @@ The exact items derived from the item reduction are found in the main paper and 
 
 rtmatEFA.R
 
-This script conducts an exploratory factor analysis on the whole dataset n = 4782 and the substudies independently. It saves the factor scores for the 3 factor model (Gillan et al. 2016) for the item reduction to use. 
+This script conducts an exploratory factor analysis on the whole dataset n = 4782 and the substudies independently. It saves the factor scores for the 3 factor model (Gillan et al. 2016, https://elifesciences.org/articles/11305) for the item reduction to use. 
 
 **2. Item reduction**
 
 fullReductionEFA.Rmd
 
-This analysis trains a classifier to predict factor scores from the original item scores. This is done using multi-target regression (i.e. predicting scores on the 3 factors based on the individual questions). 
+This analysis trains a classifier to predict factor scores from the original item scores, similar to Wise & Dolan (2020) https://www.nature.com/articles/s41467-020-17977-w. This is done using multi-target regression (i.e. predicting scores on the 3 factors based on the individual questions). 
 
 **3. External validation**
 
 externalValidationRegressions.R
 
-This script uses data from Rouault et al. (2019) and runs regression analyses examining relationships between the predicted factor scores for the 3 transdiagnostic factors and behavioural variables.
+This script uses data from Rouault et al. (2018) https://www.sciencedirect.com/science/article/pii/S0006322318300295 and runs regression analyses examining relationships between the predicted factor scores for the 3 transdiagnostic factors and behavioural variables.
 
 **4. Predicting new factor scores using reduced items**
 
