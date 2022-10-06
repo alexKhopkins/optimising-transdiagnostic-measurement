@@ -1,6 +1,5 @@
-**Optimising the measurement of anxious-depressive, compulsivity and intrusive thought and social withdrawal transdiagnostic symptom dimensions
-**
-https://psyarxiv.com/q83sh``
+**Optimising the measurement of anxious-depressive, compulsivity and intrusive thought and social withdrawal transdiagnostic symptom dimensions**
+https://psyarxiv.com/q83sh
 Alexandra Kathryn Hopkins, Claire Gillan, Jonathan Roiser, Toby Wise & Nura Sidarus 
 psyarxiv, 2022
 
