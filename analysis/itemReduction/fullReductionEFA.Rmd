@@ -215,10 +215,17 @@ for i in range(3):
     diag_line,= ax[i].plot(ax[i].get_xlim(), ax[i].get_ylim(), ls = "--",color = pal[i])
     
 plt.tight_layout()
-plt.savefig('/Users/alexxxxkh/Dropbox/postDocRH/RTMAT/figs/reductionWholeSet/predTest.eps', format='eps')
+# plt.savefig('/Users/alexxxxkh/Dropbox/postDocRH/RTMAT/figs/reductionWholeSet/predTest.eps', format='eps')
 plt.savefig('/Users/alexhopkins/Dropbox (Royal Holloway)/RTMAT/figs/reductionWholeSet/predTest.eps', format='eps')
 plt.show()
 
+
+```
+
+```{python}
+import joblib
+# joblib.dump(clf, '../data/three_factor_classifier.pkl') 
+joblib.dump(clf, baseDir + 'github/optimising-transdiagnostic-measurement/data/three_factor_classifier.pkl') 
 
 ```
 

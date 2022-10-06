@@ -1,0 +1,121 @@
+x---
+title: "reductionPipeline"
+author: "AKH"
+date: "15/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(reticulate)
+os <- import("os")
+reticulate::virtualenv_create(envname = "myenv", python ="/usr/local/bin/python3")
+# set_python_env("myenv", type = "virtualenv")
+# use_python("/Library/Frameworks/Python.framework/Versions/3.9/bin/python3", required = T)
+# use_python("/usr/local/bin/python3", required = T)
+
+# INSTALL SETTINGS - NEED TO INSTALL PYTHON ENVIRONMENTS IF USING FOR THE FIRST TIME
+# py_install("sklearn",pip = TRUE) #might need to install using pip if miniconda doesnt work
+# py_install("sklearn")
+# py_install("pandas")
+# py_install("numpy")
+# py_install("tqdm")
+# py_install("scipy")
+# py_install("matplotlib")
+# py_install("seaborn")
+# py_install("os", pip = TRUE)
+
+py_config()
+```
+
+```{python}
+
+print('Python interface is working')
+
+```
+
+```{python}
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import Lasso, Ridge
+from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.preprocessing import scale
+from tqdm import tqdm
+from scipy.stats.distributions import halfcauchy
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score
+import matplotlib
+import matplotlib.font_manager as font_manager
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+import joblib
+
+#Sort out directories
+import os
+cwd = os.getcwd()
+
+workspace1 = "hopkins" #alex work mac
+
+if workspace1 in cwd:
+  baseDir = '/Users/alexhopkins/Dropbox (Royal Holloway)/ESRC_NIG/RTMAT/github/optimising-transdiagnostic-measurement/'
+else:
+  baseDir = 'add_new_directory_here'
+
+##### SETUP STABLE PARAMS ######
+matplotlib.rcParams['font.weight'] = 'light'
+matplotlib.rcParams['axes.facecolor'] = '#fbfbfb'
+
+pal = ['#4f4f4f', '#B80044', '#0e79b2']
+
+```
+
+LOAD CLASSIFIER
+```{python}
+filename = baseDir + 'data/three_factor_classifier.pkl'
+clf = joblib.load(filename)
+clf.coef_.T[55] = 0
+  
+```
+
+LOAD IN YOUR ITEMS - here is an example dataset
+You will need to make sure the items are in the same order as the classifier expects e.g. as seen here
+```{python}
+transQs = pd.read_csv(baseDir + 'data/transDiagQs.csv')
+transQs.head()
+
+```
+
+USE THE CLASSIFIER TO PREDICT FACTOR SCORES
+```{python}
+
+factor_score_pred = clf.predict(transQs.iloc[:,1:])
+factor_score_pred = pd.DataFrame(factor_score_pred, columns=['AD', 'Compul', 'SW'])
+factor_score_pred.loc[:, 'subjIDs'] = transQs['subjIDs'].values
+factor_score_pred.head()
+
+```
+
+PLOT THE FACTOR DISTRIBUTIONS
+```{python}
+light_pal =['#9e9e9e', '#e86d9a', '#64abd1']
+
+f, ax = plt.subplots(1, 3, figsize=(10, 3), dpi=100, facecolor='white')
+factors = ['Anxiety & depression', 'Compulsivity', 'Social withdrawal']
+
+for n, factor in enumerate(['AD', 'Compul', 'SW']):
+    # sns.histplot(factor_score_pred[factor], ax=ax[n], color=light_pal[n])
+    sns.distplot(factor_score_pred[factor], ax=ax[n], color=light_pal[n], hist_kws={'ec':pal[n], 'alpha':0.5})
+    ax[n].set_xlabel('Score')
+    if n == 0:
+        ax[n].set_ylabel('Density')
+    ax[n].set_title(factors[n], fontweight='light')
+    
+plt.tight_layout()
+
+```
+
