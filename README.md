@@ -37,6 +37,23 @@ This script uses data from Rouault et al. (2018) https://www.sciencedirect.com/s
 
 **4. Predicting new factor scores using reduced items**
 
-predictNewScores.Rmd 
+predictNewScores.Rmd  
 
 This provides a skeleton code for using the classifier in order to predict new factor scores for data using the reduced questionnaire items. 
+
+
+If facing difficulties setting up the python environment in R, follow these steps:
+
+* Go to https://jupyter.org/try-jupyter/lab/
+
+* Upload predict_new_scores.ipynb (jupyter notebook in "predictNewScores" folder) and your input dataset (named transDiagQs.csv)
+
+* Download output (predictedFactorScores.csv) from the data folder
+
+
+If using your own data, note that the input dataset (transDiagQs.csv) for the classifier needs to follow the example provided in its structure (same columns), with zero-padding of items that are not used in the reduced item set, and scoring responses according to the respective questionnaire rules, i.e.:
+
+ - reverse for the respective items from SDS, STAI, BIS, AES
+ - subtract 1 for OCI-R & LSAS across all items (i.e. scores start at 0 rather than 1)
+ - EAT has a specific scoring system for coding severity, such that rating 1 (always) should be coded as "3", rating 2 (usually) as "2", rating 3 (often) as "1", and ratings 4:6 (sometimes to never) as "0"
+
